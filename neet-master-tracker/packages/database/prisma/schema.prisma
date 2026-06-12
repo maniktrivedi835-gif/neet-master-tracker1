@@ -1,0 +1,259 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Subject {
+  PHYSICS
+  CHEMISTRY
+  BIOLOGY
+}
+
+enum ChapterStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  NEEDS_REVISION
+  MASTERED
+}
+
+enum StudyType {
+  THEORY
+  MCQS
+  PYQS
+  REVISION
+  MOCK_TEST
+}
+
+enum MistakeType {
+  INCORRECT
+  GUESSED
+  CONCEPT_FORGOTTEN
+}
+
+enum RevisionStatus {
+  UPCOMING
+  DUE_TODAY
+  OVERDUE
+  COMPLETED
+}
+
+model User {
+  id                String             @id @default(cuid())
+  authProviderId    String             @unique
+  name              String
+  email             String             @unique
+  targetScore       Int                @default(650)
+  examDate          DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  chapters          ChapterProgress[]
+  sessions          StudySession[]
+  tasks             StudyTask[]
+  mockTests         MockTest[]
+  mistakes          Mistake[]
+  revisions         Revision[]
+  pyqProgress       PyqProgress[]
+  habits            HabitLog[]
+  notes             Note[]
+  resources         Resource[]
+  predictions       ScorePrediction[]
+  notifications     Notification[]
+}
+
+model Chapter {
+  id          String            @id @default(cuid())
+  subject     Subject
+  name        String
+  order       Int
+  unit        String?
+  progress    ChapterProgress[]
+  sessions    StudySession[]
+  tasks       StudyTask[]
+  mistakes    Mistake[]
+  revisions   Revision[]
+  pyqProgress PyqProgress[]
+  notes       Note[]
+  resources   Resource[]
+
+  @@unique([subject, name])
+}
+
+model ChapterProgress {
+  id              String        @id @default(cuid())
+  userId          String
+  chapterId       String
+  status          ChapterStatus @default(NOT_STARTED)
+  notesCompleted  Boolean       @default(false)
+  questionCount   Int           @default(0)
+  pyqCompletion   Int           @default(0)
+  revisionCount   Int           @default(0)
+  confidenceLevel Int           @default(0)
+  updatedAt       DateTime      @updatedAt
+  chapter         Chapter       @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+}
+
+model StudyTask {
+  id          String    @id @default(cuid())
+  userId      String
+  subject     Subject
+  chapterId   String?
+  title       String
+  priority    Int       @default(2)
+  plannedDate DateTime
+  plannedMins Int
+  completed   Boolean   @default(false)
+  order       Int       @default(0)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter     Chapter?  @relation(fields: [chapterId], references: [id])
+}
+
+model StudySession {
+  id          String    @id @default(cuid())
+  userId      String
+  subject     Subject
+  chapterId   String?
+  type        StudyType
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationMin Int
+  focusScore  Int?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter     Chapter?  @relation(fields: [chapterId], references: [id])
+}
+
+model MockTest {
+  id                  String    @id @default(cuid())
+  userId              String
+  testDate            DateTime
+  name                String
+  marksObtained       Int
+  totalMarks          Int       @default(720)
+  accuracy            Float
+  attemptedQuestions  Int
+  unattemptedQuestions Int
+  physicsScore        Int
+  chemistryScore      Int
+  biologyScore        Int
+  weakTopicReport     Json?
+  errorTrend          Json?
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Mistake {
+  id              String      @id @default(cuid())
+  userId          String
+  subject         Subject
+  chapterId       String?
+  topic           String
+  type            MistakeType
+  explanation     String?
+  screenshotUrl   String?
+  nextRevisionAt  DateTime?
+  resolved        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter         Chapter?    @relation(fields: [chapterId], references: [id])
+}
+
+model Revision {
+  id          String         @id @default(cuid())
+  userId      String
+  chapterId   String
+  cycle        Int
+  dueAt        DateTime
+  completedAt DateTime?
+  status      RevisionStatus @default(UPCOMING)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter     Chapter        @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+}
+
+model PyqProgress {
+  id                 String   @id @default(cuid())
+  userId             String
+  chapterId          String
+  year               Int
+  completedQuestions Int      @default(0)
+  totalQuestions     Int      @default(0)
+  correctPercent     Float    @default(0)
+  difficultyLevel    String
+  masteryScore       Float    @default(0)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter            Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId, year])
+}
+
+model HabitLog {
+  id                String   @id @default(cuid())
+  userId            String
+  date              DateTime
+  wakeUpTime        String?
+  studyHours        Float    @default(0)
+  mockTestsTaken    Int      @default(0)
+  revisionCompleted Boolean  @default(false)
+  productivityScore Int      @default(0)
+  xpPoints          Int      @default(0)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  userId      String
+  chapterId   String?
+  title       String
+  body        String?
+  fileUrl     String?
+  tags        String[]
+  aiSummary   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter     Chapter? @relation(fields: [chapterId], references: [id])
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  userId      String?
+  chapterId   String?
+  title       String
+  type        String
+  url         String?
+  tags        String[]
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter     Chapter? @relation(fields: [chapterId], references: [id])
+}
+
+model ScorePrediction {
+  id                String   @id @default(cuid())
+  userId            String
+  currentScore      Int
+  dailyStudyHours   Float
+  mockAverage       Float
+  expectedScore     Int
+  targetProbability Float
+  expectedRank      Int
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  channel   String
+  dueAt     DateTime
+  sentAt    DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,16 @@
+{
+  "name": "NEET Master Tracker",
+  "short_name": "NEET Tracker",
+  "description": "All-in-one NEET UG preparation tracker.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fa",
+  "theme_color": "#0b8391",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
